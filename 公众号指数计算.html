@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html>
+
+	<head>
+		<meta charset="utf-8" />
+		<title>公众号指数统计</title>
+		<script type="text/javascript" src="js/jquery-3.2.1.js"></script>
+		<style>
+			table {
+				width: 100%;
+				height: 40px;
+				margin-bottom: 40px;
+				text-align: center;
+			}
+		</style>
+	</head>
+
+	<body>
+		公众机构<input  type="text" placeholder="公众机构"  /> 
+		观测天数<input type="number" style="width: 70px;" placeholder="观测天数" value="10" />
+		阅读量<input type="number" style="width: 90px;" placeholder="推文阅读量" />
+		点赞<input type="number" style="width: 90px;" placeholder="点赞数量" />
+		<button>一键完成</button>
+		<button>录入数据</button>
+		<button>撤销数据</button>
+		<button>恢复数据</button>
+		<button>一键排序</button>
+		<hr>
+		<p>当前阅读数集合：<span></span></p>
+		<p>当前添加的点赞书集合：<span></span></p>
+		<p>观测天数：<span></span></p>
+		<hr>
+		<table id="tb" border="1" cellpadding="0" cellspacing="0">
+			<tr id="firstTr">
+				<th>公众机构</th>
+				<th>阅读量</th>
+				<th>点赞</th>
+				<th>最大阅读量</th>
+				<th>最高点赞</th>
+				<th>文章篇数</th>
+				<th>WIC指数</th>
+				<th>排名</th>
+			</tr>
+		</table>
+		<table id="tb2" border="1" cellpadding="0" cellspacing="0">
+			<tr>
+				<th colspan="3">公众号详细数据表</th>
+			</tr>
+			<tr id="secondTr">
+				<th>公众机构</th>
+				<th>日阅读数据</th>
+				<th>日点赞数据</th>
+			</tr>
+		</table>
+	</body>
+	<script>
+		$(function() {
+			/*
+			 * 所需变量声明
+			 */
+			var readnum = [];
+			var sptnum = [];
+			var maxRead = 0;
+			var maxSpt = 0;
+			var sumArticleNum = 0;
+			var sumRead = 0;
+			var sumSpt = 0;
+			var meanNum = 0;
+			var WCInum = 0;
+			var testDate =10;
+			//用来存储各大公众号的信息
+			var media_dataBase = [];
+			//存储所有添加的WCI值
+			var WCI_dataBase = [];
+			var WCI_range=[];
+			//本地存储
+			var keyIndex=0;
+			/*
+			 * 操作动作环节
+			 */
+
+			/*添加天数*/
+			$("input:eq(1)").blur(function() {
+				$("span:eq(2)").html($("input:eq(1)").val());
+				testDate = $("input:eq(1)").val();
+				//				console.log(testDate)
+			})
+
+			/*添加公众机构*/
+			$("button:eq(0)").click(function() {
+				//获取表格 
+				var $tb = $("#tb");
+				var $tb2=$("#tb2");
+				//创建行列
+				var $tr = $("<tr></tr>");
+				var $tr2=$("<tr></tr>");
+				
+				var $tdName = $("<td></td>");
+				var $tdSumRead = $("<td></td>");
+				var $tdSumSpt = $("<td></td>");
+				var $tdMaxRead = $("<td></td>");
+				var $tdMaxSpt = $("<td></td>");
+				var $tdArticleNum = $("<td></td>");
+				var $tdMeanNum = $("<td></td>");
+				var $tdRangeNum = $("<td></td>");
+				
+				var $td2Name = $("<td></td>");
+				var $td2DayliyReadNum = $("<td></td>");
+				var $td2DayliySptNum = $("<td></td>");
+				//放置行列
+				$tdName.html($("input:eq(0)").val());
+				$tb.append($tr);
+				$tr.append($tdName);
+				$tr.append($tdSumRead);
+				$tr.append($tdSumSpt);
+				$tr.append($tdMaxRead);
+				$tr.append($tdMaxSpt);
+				$tr.append($tdArticleNum);
+				$tr.append($tdMeanNum);
+				$tr.append($tdRangeNum);
+				
+				$tb2.append($tr2);
+				$tr2.append($td2Name);
+				$tr2.append($td2DayliyReadNum);
+				$tr2.append($td2DayliySptNum);
+				//求 阅读总量
+				for(var i = 0; i < readnum.length; i++) {
+					sumRead += readnum[i] * 1;
+				}
+				//求点赞总量
+				for(var i = 0; i < sptnum.length; i++) {
+					sumSpt += sptnum[i] * 1;
+				}
+				//求阅读量最大值
+				maxRead = Math.max.apply(Math, readnum);
+				//求点赞量最大值
+				maxSpt = Math.max.apply(Math, sptnum);
+
+				//求文章数
+				sumArticleNum = readnum.length;
+
+				/* 求WCI指数*/
+
+				//一般日均阅读
+				var nAveDateRead = sumRead / testDate;
+				//一般篇均阅读
+				var nAvePieceRead = sumRead / sumArticleNum;
+
+				//一般日均点赞
+				var nAveDateSpt = sumSpt / testDate;
+				//一般篇均点赞
+				var nAvePieceSpt = sumSpt / sumArticleNum
+				//标准化
+				//日均阅读
+				var read_sAveDateNum = Math.log(nAveDateRead + 1)
+				//篇均阅读
+				var read_sAvePieceNum = Math.log(nAvePieceRead + 1)
+				//最高阅读
+				var sMaxRead = Math.log(maxRead + 1)
+				//日均点赞
+				var spt_sAveDateNum = Math.log(10 * nAveDateSpt + 1)
+				//偏均点赞
+				var spt_sAvePieceNum = Math.log(10 * nAvePieceSpt + 1)
+				//最高点赞
+				var sMaxSpt = Math.log(10 * maxSpt + 1)
+				//阅读指数
+				var read_mNum = read_sAveDateNum * 0.4 + read_sAvePieceNum * 0.45 + sMaxRead * 0.15;
+				//点赞指数
+				var spt_mNum = spt_sAveDateNum * 0.4 + spt_sAvePieceNum * 0.45 + sMaxSpt * 0.15;
+
+				//最终指数WCI
+				var wci = (read_mNum * 0.8 + spt_mNum * 0.2) * (read_mNum * 0.8 + spt_mNum * 0.2) * 10;
+				//				console.log(wci)
+				//计算入表格
+				//表格一
+				$tdMeanNum.html(wci)
+				$tdArticleNum.html(sumArticleNum)
+				$tdMaxRead.html(maxRead);
+				$tdMaxSpt.html(maxSpt);
+				$tdSumRead.html(sumRead);
+				$tdSumSpt.html(sumSpt);
+				//表格二
+				$td2Name.html($("input:eq(0)").val());
+				$td2DayliyReadNum.html($("span:eq(0)").html());
+				$td2DayliySptNum.html($("span:eq(1)").html());
+				
+				//存储数据
+				
+//				WCI_dataBase[wci]=wci;
+////				WCI_range.push(WCI_dataBase[WCI_dataBase.length-1]);
+//				console.log(WCI_dataBase);
+//				console.log(WCI_range)
+				//对应公众机构相关数据存储
+				//创建存储对象
+				var storage_object = {};
+				//将公众机构数据存入存储对象
+				storage_object.name = $("input:eq(0)").val();
+				storage_object.readNum = sumRead;
+				storage_object.sptNum = sumSpt;
+				storage_object.maxRead = maxRead;
+				storage_object.maxSpt = maxSpt;
+				storage_object.aticleNum = sumArticleNum;
+				storage_object.wci = wci;
+				storage_object.DayliyReadNum=$("span:eq(0)").html();
+				storage_object.DayliySptNum=$("span:eq(1)").html();
+				//保存对象到公众机构数据库
+				media_dataBase.push(storage_object);
+				//	console.log(media_dataBase);
+
+				//本地存储
+//				localStorage.setItem(keyIndex,JSON.stringify(storage_object));
+//				keyIndex++;
+				//清零
+				readnum = [];
+				sptnum = [];
+				sumRead = 0;
+				sumRead = 0;
+				sumSpt = 0;
+				maxRead = 0;
+				maxSpt = 0;
+				sumArticleNum = 0
+				//console.log(readnum)
+			})
+
+			/*
+			 * 获取文本框输入的值
+			 */
+			
+			//单击存储
+			$("button:eq(1)").click(function() {
+
+				var rdn = $("input:eq(2)").val();
+				var sptn = $("input:eq(3)").val();
+				//判断是否有内容忘记输入了
+				if(rdn.length == 0 || sptn.length == 0) {
+					alert("您有未输入内容")
+				} else {
+					//判断阅读是否大于等于点赞
+					if(rdn => sptn) {
+						//输入数据
+						readnum.push(rdn);
+						sptnum.push(sptn);
+						console.log(readnum);
+						console.log(sptnum);
+						$("span:eq(0)").html(readnum +",");
+						$("span:eq(1)").html(sptnum + ",");
+					} else {
+						alert("阅读量必须>=点赞量")
+					}
+				}
+			})
+
+			/*
+			 * 撤销数据按钮 作用：点击时，撤销上一次数据
+			 */
+			
+			$("button:eq(2)").click(function() {
+				readnum.splice(readnum.length-1,1);
+				sptnum.splice(sptnum.length-1,1);
+//				console.log(readnum);
+//				console.log(sptnum);
+				$("span:eq(0)").html(readnum + ",");
+				$("span:eq(1)").html(sptnum + ",");
+			})
+			
+			
+			/*
+			 * 点击时 恢复上次输入数据
+			 */
+			$("button:eq(3)").click(function() {
+				//获取本地数据对象
+				var localData_stringObj=localStorage.getItem(1);
+				//转化本地数据 字符串对象 为 JSON对象
+				var localData_jsonObj=JSON.parse(localData_stringObj);
+				//读取对象信息
+				var nameData=localData_jsonObj.name;
+				var readNumData=localData_jsonObj.readNum;
+				var sptNumData=localData_jsonObj.sptNum;
+				var maxReadData=localData_jsonObj.maxRead;
+				var maxSptData=	localData_jsonObj.maxSpt;
+				var aticleNumData=	localData_jsonObj.aticleNum;
+				var wciData=localData_jsonObj.wci;
+				var DayliyReadNumData=localData_jsonObj.DayliyReadNum;
+				var DayliySptNumData=localData_jsonObj.DayliySptNum;
+				//获取表格
+				var tb=$("#tb");
+				var tb2=$("#tb2");
+				//创建行
+				var tr=$("<tr></tr>");
+				var tr2=$("<tr></tr>");
+				//创建格子
+				var tdName=$("<td></td>");
+				var tdReadNum=$("<td></td>");
+				var tdSptNum=$("<td></td>");
+				var tdMaxRead=$("<td></td>");
+				var tdMaxSpt=$("<td></td>");
+				var tdArticleNum=$("<td></td>");
+				var tdWci=$("<td></td>");
+				
+				var td2DayliyReadNum=$("<td></td>");
+				var td2DayliySptNum=$("<td></td>");
+				//tr放入td
+				tb.append(tr);
+				tb2.append(tr2);
+				//td放入tr
+				tr.append(tdName);
+				tr.append(tdReadNum);
+				tr.append(tdSptNum);
+				tr.append(tdMaxRead);
+				tr.append(tdMaxSpt);
+				tr.append(tdArticleNum);
+				tr.append(tdWci);
+				
+				tr2.append(tdName);
+				tr2.append(td2DayliyReadNum);
+				tr2.append(td2DayliySptNum);
+				//放入数据
+				tdName.html(nameData);
+				tdReadNum.html(readNumData);
+				tdSptNum.html(sptNumData);
+				tdMaxRead.html(maxReadData);
+				tdMaxSpt.html(maxSptData);
+				tdArticleNum.html(aticleNumData);
+				tdWci.html(wciData);
+				
+				td2DayliyReadNum.html(DayliyReadNumData);
+				td2DayliySptNum.html(DayliySptNumData);
+//				alert(localData_jsonObj.readNum)
+			})
+			
+			
+			
+			/*
+			 * 点击时【排序】表格
+			 */
+			
+			$("button:eq(4)").click(function() {
+				//清除原有列表
+				//				var $firstChild_tb= $("#firstTr");
+				//				var $brothers_firstChild=$firstChild_tb.siblings();
+				//				$brothers_firstChild.remove();
+				//将WCI_dataBase数组的值由大到小排列	
+//				WCI_dataBase.sort(function(a, b) {
+//					return b - a
+//				});
+//				
+//				console.log(WCI_dataBase)
+//				循环遍历数组media_dataBase
+//								for(var i = 0; i < WCI_dataBase.length; i++) {
+//									for(var j = 0; j < media_dataBase.length; j++) {
+//										if(media_dataBase[j].wci == WCI_dataBase[i]) {
+//											console.log(media_dataBase[j].wci)
+//										}
+//									}
+//								}
+
+//				console.log(WCI_dataBase)
+			})
+		})
+	</script>
+
+</html>
